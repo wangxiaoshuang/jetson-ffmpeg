@@ -35,19 +35,20 @@ L4T Multimedia API for ffmpeg
 **3.using**
 
 ### Supports Decoding
-  - MPEG2
-  - H.264/AVC
-  - HEVC
-  - VP8
-  - VP9
+  - H.264/AVC (ffmpeg codec name: h264_nvmpi)
+  - H.265/HEVC (ffmpeg codec name: hevc_nvmpi)
+  - MPEG2 (ffmpeg codec name: mpeg2_nvmpi)
+  - MPEG4 (ffmpeg codec name: mpeg4_nvmpi)
+  - VP8 (ffmpeg codec name: vp8_nvmpi)
+  - VP9 (ffmpeg codec name: vp9_nvmpi)
   
 **example**
 
     ffmpeg -c:v h264_nvmpi -i input_file -f null -
 	
 ### Supports Encoding
-  - H.264/AVC
-  - HEVC
+  - H.264/AVC (ffmpeg codec name: h264_nvmpi)
+  - H.265/HEVC (ffmpeg codec name: hevc_nvmpi)
   
 **example**
 
