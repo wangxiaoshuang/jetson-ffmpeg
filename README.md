@@ -59,7 +59,19 @@ This library provides the ability to use hardware acceleration for video encodin
     make
     sudo make install
     sudo ldconfig
-	
+
+Cmake options:
+  - -DJETSON_MULTIMEDIA_API_DIR=<path_to_dir> Path to custom Jetson Multimedia API headers and common sources directory. Default: /usr/src/jetson_multimedia_api.
+  - -DJETSON_MULTIMEDIA_LIB_DIR=<path_to_dir> Path to custom Jetson Multimedia libraries directory. Default: /usr/lib/aarch64-linux-gnu/tegra.
+  - -DCUDA_INCLUDE_DIR=<path_to_dir> Path to custom CUDA headers directory. Default: /usr/local/cuda/include.
+  - -DCUDA_LIB_DIR=<path_to_dir> Path to custom CUDA libraries directory. Default: /usr/local/cuda/lib64.
+  - -DWITH_STUBS=[ON/OFF] Build nvmpi library and link stubs instead of original libraries. Default: OFF. Could be user to create automated builds or Docker images. See https://github.com/Keylost/jetson-ffmpeg/pull/9 for details and script example.
+
+Build with stubs and custom dirs example:
+
+    cmake -DWITH_STUBS=ON -DJETSON_MULTIMEDIA_API_DIR=/home/user/build_deps/jetson_multimedia_api ..
+    make
+
 **2.patch ffmpeg and build**
 
     clone one of supported ffmpeg versions
