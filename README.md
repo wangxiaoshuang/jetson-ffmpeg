@@ -30,7 +30,8 @@ L4T Multimedia API for ffmpeg
     git apply ffmpeg_nvmpi.patch
     ./configure --enable-nvmpi
     make
-
+    sudo make install
+    
 **3.using**
 
 ### Supports Decoding
