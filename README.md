@@ -75,8 +75,8 @@ Build with stubs and custom dirs example:
 
 **2.patch ffmpeg and build**
 
-    clone one of supported ffmpeg versions (for example ffmpeg 6.0)
-    git clone git://source.ffmpeg.org/ffmpeg.git -b release/6.0 --depth=1
+    clone one of supported ffmpeg versions (for example ffmpeg 7.1)
+    git clone git://source.ffmpeg.org/ffmpeg.git -b release/7.1 --depth=1
     Go to the directory with the jetson-ffmpeg sources and patch the ffmpeg using the ffpatch.sh script.
     cd jetson-ffmpeg
     ./ffpatch.sh ../ffmpeg
