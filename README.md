@@ -48,6 +48,9 @@ This library provides the ability to use hardware acceleration for video encodin
 ### Supports Encoding
   - H.264/AVC (ffmpeg codec name: h264_nvmpi)
   - H.265/HEVC (ffmpeg codec name: hevc_nvmpi)
+  
+### Other Features
+  - Hardware accelerated video scaling during decoding
 
 ### Building and usage
 **1.build and install library**
@@ -91,6 +94,10 @@ Build with stubs and custom dirs example:
 **Decode h264 video example**
 
     ffmpeg -c:v h264_nvmpi -i <input.mp4> -f null -
+    
+**Decode h264 video with fast scaling during decoding example**
+
+    ffmpeg -c:v h264_nvmpi -resize:v 1920x1080 -i <input.mp4> -f null -
   
 **Encode h264 video example**
 
