@@ -34,7 +34,8 @@ This library provides the ability to use hardware acceleration for video encodin
 
 ### FFmpeg support list
 
-  - Currently the library is compatible with FFmpeg 4.2, 4.4 and 6.0.
+  - The library is currently compatible with all FFmpeg versions from 4.2 to 7.1+.
+  - It may also work with versions older than 4.2, but it has not been tested.
 
 ### Supports Decoding
   - H.264/AVC (ffmpeg codec name: h264_nvmpi)
@@ -74,20 +75,13 @@ Build with stubs and custom dirs example:
 
 **2.patch ffmpeg and build**
 
-    clone one of supported ffmpeg versions
-    git clone git://source.ffmpeg.org/ffmpeg.git -b release/4.2 --depth=1
-    or
-    git clone git://source.ffmpeg.org/ffmpeg.git -b release/4.4 --depth=1
-    or
+    clone one of supported ffmpeg versions (for example ffmpeg 6.0)
     git clone git://source.ffmpeg.org/ffmpeg.git -b release/6.0 --depth=1
-    cd ffmpeg
-    get and apply patch for your ffmpeg version
-    wget -O ffmpeg_nvmpi.patch https://github.com/Keylost/jetson-ffmpeg/raw/master/ffmpeg_patches/ffmpeg4.2_nvmpi.patch
-    or
-    wget -O ffmpeg_nvmpi.patch https://github.com/Keylost/jetson-ffmpeg/raw/master/ffmpeg_patches/ffmpeg4.4_nvmpi.patch
-    or
-    wget -O ffmpeg_nvmpi.patch https://github.com/Keylost/jetson-ffmpeg/raw/master/ffmpeg_patches/ffmpeg6.0_nvmpi.patch
-    git apply ffmpeg_nvmpi.patch
+    Go to the directory with the jetson-ffmpeg sources and patch the ffmpeg using the ffpatch.sh script.
+    cd jetson-ffmpeg
+    ./ffpatch.sh ../ffmpeg
+    Go to ffmpeg sources directory configure and build ffmpeg with nvmpi enabled and your custom options 
+    cd ../ffmpeg
     ./configure --enable-nvmpi
     make
     sudo make install
@@ -104,4 +98,4 @@ Build with stubs and custom dirs example:
 
 **Transcode h264 to h265 video example**
 
-    ffmpeg -c:v h264_nvmpi -i <input.mp4> -c:v h265_nvmpi <output.mp4>
+    ffmpeg -c:v h264_nvmpi -i <input.mp4> -c:v hevc_nvmpi <output.mp4>

@@ -8,6 +8,7 @@
 #include "libavutil/imgutils.h"
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
+#include "libavutil/mem.h"
 
 #include "version.h"
 
@@ -235,7 +236,7 @@ static av_cold int nvmpi_encode_init(AVCodecContext *avctx)
 			if(ret < 0)
 			{
 				if(ret == -2) break; //got eos
-				usleep(1000);
+				//usleep(1000);
 				continue;
 			}
 			nvmpienc_nvPacket_free(nPkt);
@@ -418,7 +419,7 @@ static av_cold int nvmpi_encode_close(AVCodecContext *avctx)
 			if(ret < 0)
 			{
 				if(ret == -2) break; //got eos
-				usleep(1000);
+				//usleep(1000);
 				continue;
 			}
 			nvmpienc_nvPacket_free(nPkt);
