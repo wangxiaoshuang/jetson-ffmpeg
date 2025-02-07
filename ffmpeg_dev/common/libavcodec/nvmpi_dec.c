@@ -19,6 +19,9 @@
 #include "codec_internal.h"
 #endif
 
+#define OPT_frame_pool_size_MIN 1
+#define OPT_frame_pool_size_MAX 32
+#define OPT_frame_pool_size_DEFAULT 5
 
 typedef struct {
 	char eos_reached;
@@ -26,6 +29,7 @@ typedef struct {
 	AVClass *av_class;
 	AVFrame *bufFrame;
 	char *resize_expr;
+	int frame_pool_size;
 } nvmpiDecodeContext;
 
 static nvCodingType nvmpi_get_codingtype(AVCodecContext *avctx)
@@ -42,66 +46,78 @@ static nvCodingType nvmpi_get_codingtype(AVCodecContext *avctx)
 };
 
 
-static int nvmpi_init_decoder(AVCodecContext *avctx){
-
+static int nvmpi_init_decoder(AVCodecContext *avctx)
+{
 	nvmpiDecodeContext *nvmpi_context = avctx->priv_data;
-	nvCodingType codectype=NV_VIDEO_CodingUnused;
-	nvSize resized = {0};
+	nvDecParam param={0};
 	
-	codectype =nvmpi_get_codingtype(avctx);
-	if (codectype == NV_VIDEO_CodingUnused) {
+	param.codingType =nvmpi_get_codingtype(avctx);
+	if (param.codingType == NV_VIDEO_CodingUnused)
+	{
 		av_log(avctx, AV_LOG_ERROR, "Unknown codec type (%d).\n", avctx->codec_id);
 		return AVERROR_UNKNOWN;
+	}
+	
+	param.frame_pool_size = nvmpi_context->frame_pool_size;
+	if(param.frame_pool_size < OPT_frame_pool_size_MIN || param.frame_pool_size > OPT_frame_pool_size_MAX)
+	{
+		av_log(avctx, AV_LOG_WARNING, "Incorrect frame_pool_size specified: %d. Default (%d) will be used.\n", param.frame_pool_size, OPT_frame_pool_size_DEFAULT);
+		param.frame_pool_size = OPT_frame_pool_size_DEFAULT;
 	}
 
 	//Workaround for default pix_fmt not being set, so check if it isnt set and set it,
 	//or if it is set, but isnt set to something we can work with.
-
-	if(avctx->pix_fmt ==AV_PIX_FMT_NONE){
+	if(avctx->pix_fmt ==AV_PIX_FMT_NONE)
+	{
 		 avctx->pix_fmt=AV_PIX_FMT_YUV420P;
-	}else if((avctx->pix_fmt != AV_PIX_FMT_YUV420P) && (avctx->pix_fmt != AV_PIX_FMT_YUVJ420P)){
+	}
+	else if((avctx->pix_fmt != AV_PIX_FMT_YUV420P) && (avctx->pix_fmt != AV_PIX_FMT_YUVJ420P))
+	{
 		av_log(avctx, AV_LOG_ERROR, "Invalid Pix_FMT for NVMPI: Only YUV420P and YUVJ420P are supported\n");
 		return AVERROR_INVALIDDATA;
 	}
+	//TODO more pixformats support
+	param.pixFormat = NV_PIX_YUV420;
 
     if (nvmpi_context->resize_expr && sscanf(nvmpi_context->resize_expr, "%dx%d",
-                                             &resized.width, &resized.height) != 2) {
+                                             &param.resized.width, &param.resized.height) != 2)
+	{
         av_log(avctx, AV_LOG_ERROR, "Invalid resize expressions\n");
         return AVERROR(EINVAL);
     }
 	
 	//overwrite avctx w and h if resize option is used
-	if(resized.width && resized.height)
+	if(param.resized.width && param.resized.height)
 	{
-		avctx->width = resized.width;
-		avctx->height = resized.height;
+		avctx->width = param.resized.width;
+		avctx->height = param.resized.height;
 	}
 
 	nvmpi_context->bufFrame = av_frame_alloc();
 	nvmpi_context->bufFrame->width = avctx->width;
 	nvmpi_context->bufFrame->height = avctx->height;
-	if (ff_get_buffer(avctx, nvmpi_context->bufFrame, 0) < 0) {
+	if (ff_get_buffer(avctx, nvmpi_context->bufFrame, 0) < 0)
+	{
 		av_frame_free(&(nvmpi_context->bufFrame));
 		nvmpi_context->bufFrame = NULL;
 		return AVERROR(ENOMEM);
 	}
 
-	nvmpi_context->ctx=nvmpi_create_decoder(codectype, NV_PIX_YUV420, resized);
+	nvmpi_context->ctx=nvmpi_create_decoder(&param);
 
-	if(!nvmpi_context->ctx){
+	if(!nvmpi_context->ctx)
+	{
 		av_frame_free(&(nvmpi_context->bufFrame));
 		nvmpi_context->bufFrame = NULL;
 		av_log(avctx, AV_LOG_ERROR, "Failed to nvmpi_create_decoder (code = %d).\n", AVERROR_EXTERNAL);
 		return AVERROR_EXTERNAL;
 	}
+	
    return 0;
-
 }
 
-
-
-static int nvmpi_close(AVCodecContext *avctx){
-
+static int nvmpi_close(AVCodecContext *avctx)
+{
 	nvmpiDecodeContext *nvmpi_context = avctx->priv_data;
 	if(nvmpi_context->bufFrame)
 	{
@@ -109,13 +125,12 @@ static int nvmpi_close(AVCodecContext *avctx){
 		nvmpi_context->bufFrame = NULL;
 	}
 	return nvmpi_decoder_close(nvmpi_context->ctx);
-
 }
 
 #if LIBAVCODEC_VERSION_MAJOR >= 60
-static int nvmpi_decode(AVCodecContext *avctx,AVFrame *data,int *got_frame, AVPacket *avpkt)
+static int nvmpi_decode(AVCodecContext *avctx, AVFrame *data, int *got_frame, AVPacket *avpkt)
 #else
-static int nvmpi_decode(AVCodecContext *avctx,void *data,int *got_frame, AVPacket *avpkt)
+static int nvmpi_decode(AVCodecContext *avctx, void *data, int *got_frame, AVPacket *avpkt)
 #endif
 {
 	nvmpiDecodeContext *nvmpi_context = avctx->priv_data;
@@ -124,13 +139,23 @@ static int nvmpi_decode(AVCodecContext *avctx,void *data,int *got_frame, AVPacke
 	nvFrame _nvframe={0};
 	nvPacket packet;
 	int res;
+	int decode_ret = avpkt->size;
 
-	if(avpkt->size){
+	if(avpkt->size)
+	{
 		packet.payload_size=avpkt->size;
 		packet.payload=avpkt->data;
 		packet.pts=avpkt->pts;
 
 		res=nvmpi_decoder_put_packet(nvmpi_context->ctx,&packet);
+		if(res < 0)
+		{
+			if(res == -1)
+			{
+				decode_ret = AVERROR(EAGAIN); //TODO log
+			}
+			//TODO error handling
+		}
 	}
 
 	_nvframe.payload[0] = bufFrame->data[0];
@@ -143,7 +168,9 @@ static int nvmpi_decode(AVCodecContext *avctx,void *data,int *got_frame, AVPacke
 	res=nvmpi_decoder_get_frame(nvmpi_context->ctx,&_nvframe,avctx->flags & AV_CODEC_FLAG_LOW_DELAY);
 
 	if(res<0)
-		return avpkt->size;
+	{
+		return decode_ret;
+	}
 
 	bufFrame->format=AV_PIX_FMT_YUV420P;
 	bufFrame->pts=_nvframe.timestamp;
@@ -154,14 +181,16 @@ static int nvmpi_decode(AVCodecContext *avctx,void *data,int *got_frame, AVPacke
 	
 	bufFrame->width = avctx->width;
 	bufFrame->height = avctx->height;
-	if (ff_get_buffer(avctx, bufFrame, 0) < 0) {
+	if (ff_get_buffer(avctx, bufFrame, 0) < 0)
+	{
+		av_log(avctx, AV_LOG_ERROR, "ff_get_buffer failed\n");
 		return AVERROR(ENOMEM);
 	}
 	
 	frame->metadata = bufFrame->metadata;
 	bufFrame->metadata = NULL;
 
-	return avpkt->size;
+	return decode_ret;
 }
 
 
@@ -169,7 +198,8 @@ static int nvmpi_decode(AVCodecContext *avctx,void *data,int *got_frame, AVPacke
 #define OFFSET(x) offsetof(nvmpiDecodeContext, x)
 #define VD AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_DECODING_PARAM
 static const AVOption options[] = {
-    { "resize",   "Resize (width)x(height)", OFFSET(resize_expr), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, VD },
+    { "resize",   "Resize (width)x(height)", OFFSET(resize_expr), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, VD, "resize" },
+    { "frame_pool_size", "Number of frames that could be buffered in the decoder before user must read it with avcodec_receive_frame()", OFFSET(frame_pool_size), AV_OPT_TYPE_INT, {.i64 = OPT_frame_pool_size_DEFAULT }, OPT_frame_pool_size_MIN, OPT_frame_pool_size_MAX, VD, "frame_pool_size" },
     { NULL }
 };
 

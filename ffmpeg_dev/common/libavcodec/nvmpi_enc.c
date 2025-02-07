@@ -20,11 +20,15 @@
 #include "codec_internal.h"
 #endif
 
+#define OPT_packet_pool_size_MIN 1
+#define OPT_packet_pool_size_MAX 32
+#define OPT_packet_pool_size_DEFAULT 5
 
 typedef struct {
 	const AVClass *class;
 	nvmpictx* ctx;
 	int num_capture_buffers;
+	int packet_pool_size;
 	int profile;
 	int level;
 	int rc;
@@ -144,6 +148,7 @@ static av_cold int nvmpi_encode_init(AVCodecContext *avctx)
 	param.profile=nvmpi_context->profile& ~FF_PROFILE_H264_INTRA;
 	param.level=nvmpi_context->level;
 	param.capture_num=nvmpi_context->num_capture_buffers;
+	//param.packet_pool_size=nvmpi_context->packet_pool_size;
 	param.hw_preset_type=nvmpi_context->preset;
 	param.insert_spspps_idr=(avctx->flags & AV_CODEC_FLAG_GLOBAL_HEADER)?0:1;
 	
@@ -174,8 +179,8 @@ static av_cold int nvmpi_encode_init(AVCodecContext *avctx)
 	}
 
 	//TODO should replace it
-	if ((avctx->flags & AV_CODEC_FLAG_GLOBAL_HEADER) && (avctx->codec->id == AV_CODEC_ID_H264)){
-
+	if ((avctx->flags & AV_CODEC_FLAG_GLOBAL_HEADER) && (avctx->codec->id == AV_CODEC_ID_H264))
+	{
 		uint8_t *dst[4];
 		int linesize[4];
 		nvFrame _nvframe={0};
@@ -183,12 +188,13 @@ static av_cold int nvmpi_encode_init(AVCodecContext *avctx)
 		nvmpictx *_ctx;
 		int i;
 		int ret;
+		param.codingType = NV_VIDEO_CodingH264;
 		av_image_alloc(dst, linesize,avctx->width,avctx->height,avctx->pix_fmt,1);
 
-		nvmpi_context->ctx = nvmpi_create_encoder(NV_VIDEO_CodingH264,&param);
+		nvmpi_context->ctx = nvmpi_create_encoder(&param);
 		_ctx = nvmpi_context->ctx;
 		//TODO error handling. if(!_ctx)
-		nvmpienc_initPktPool(avctx,nvmpi_context->num_capture_buffers);
+		nvmpienc_initPktPool(avctx,nvmpi_context->packet_pool_size);
 		i=0;
 
 		while(true)
@@ -252,17 +258,19 @@ static av_cold int nvmpi_encode_init(AVCodecContext *avctx)
 
 	if(avctx->codec->id == AV_CODEC_ID_H264)
 	{
-		nvmpi_context->ctx=nvmpi_create_encoder(NV_VIDEO_CodingH264,&param);
+		param.codingType = NV_VIDEO_CodingH264;
+		nvmpi_context->ctx=nvmpi_create_encoder(&param);
 	}
 	else if(avctx->codec->id == AV_CODEC_ID_HEVC)
 	{
-		nvmpi_context->ctx=nvmpi_create_encoder(NV_VIDEO_CodingHEVC,&param);
+		param.codingType = NV_VIDEO_CodingHEVC;
+		nvmpi_context->ctx=nvmpi_create_encoder(&param);
 	}
 	//else TODO
 	
 	if(nvmpi_context->ctx)
 	{
-		nvmpienc_initPktPool(avctx,nvmpi_context->num_capture_buffers);
+		nvmpienc_initPktPool(avctx,nvmpi_context->packet_pool_size);
 	}
 	//TODO error handling. if(!nvmpi_context->ctx)
 
@@ -457,7 +465,8 @@ static const AVCodecDefault defaults[] = {
 #define VE AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
 
 static const AVOption options[] = {
-	{ "num_capture_buffers", "Number of buffers in the capture context", OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 10 }, 1, 32, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM },
+	{ "num_capture_buffers", "Number of buffers in the capture context", OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 10 }, 1, 32, VE, "num_capture_buffers" },
+	{ "packet_pool_size", "Number of packets that could be buffered in the encoder before user must read it with avcodec_receive_packet()", OFFSET(packet_pool_size), AV_OPT_TYPE_INT, {.i64 = OPT_packet_pool_size_DEFAULT }, OPT_packet_pool_size_MIN, OPT_packet_pool_size_MAX, VE, "packet_pool_size" },
 	/// Profile,
 
 	{ "profile",  "Set the encoding profile", OFFSET(profile), AV_OPT_TYPE_INT,   { .i64 = FF_PROFILE_UNKNOWN },       FF_PROFILE_UNKNOWN, FF_PROFILE_H264_HIGH, VE, "profile" },
