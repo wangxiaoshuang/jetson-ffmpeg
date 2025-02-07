@@ -1,54 +1,44 @@
 diff --git a/configure b/configure
-index b6616f0..d66e140 100755
+index 6db69dd..682b9c9 100755
 --- a/configure
 +++ b/configure
 @@ -353,6 +353,7 @@ External library support:
    --disable-vaapi          disable Video Acceleration API (mainly Unix/Intel) code [autodetect]
    --disable-vdpau          disable Nvidia Video Decode and Presentation API for Unix code [autodetect]
    --disable-videotoolbox   disable VideoToolbox code [autodetect]
-+  --enable-nvmpi           enable nvmpi code
++  --enable-nvmpi           enable nvmpi code [no]
  
  Toolchain options:
    --arch=ARCH              select architecture [$arch]
-@@ -1913,6 +1914,7 @@ HWACCEL_LIBRARY_LIST="
-     mmal
-     omx
-     opencl
-+    nvmpi
+@@ -1907,6 +1908,7 @@ HWACCEL_LIBRARY_NONFREE_LIST="
  "
  
- DOCUMENT_LIST="
-@@ -3176,12 +3178,15 @@ h264_mediacodec_encoder_select="h264_metadata"
+ HWACCEL_LIBRARY_LIST="
++    nvmpi
+     $HWACCEL_LIBRARY_NONFREE_LIST
+     libmfx
+     libvpl
+@@ -3181,6 +3183,9 @@ h264_mediacodec_encoder_extralibs="-landroid"
+ h264_mediacodec_encoder_select="h264_metadata"
  h264_mf_encoder_deps="mediafoundation"
  h264_mmal_decoder_deps="mmal"
- h264_nvenc_encoder_deps="nvenc"
 +h264_nvmpi_encoder_deps="nvmpi"
- h264_nvenc_encoder_select="atsc_a53"
- h264_omx_encoder_deps="omx"
- h264_qsv_decoder_select="h264_mp4toannexb_bsf qsvdec"
- h264_qsv_encoder_select="atsc_a53 qsvenc"
- h264_rkmpp_decoder_deps="rkmpp"
- h264_rkmpp_decoder_select="h264_mp4toannexb_bsf"
 +h264_nvmpi_decoder_deps="nvmpi"
 +h264_nvmpi_decoder_select="h264_mp4toannexb_bsf"
- h264_vaapi_encoder_select="atsc_a53 cbs_h264 vaapi_encode"
- h264_v4l2m2m_decoder_deps="v4l2_m2m h264_v4l2_m2m"
- h264_v4l2m2m_decoder_select="h264_mp4toannexb_bsf"
-@@ -3198,10 +3203,13 @@ hevc_mediacodec_encoder_select="hevc_metadata"
+ h264_nvenc_encoder_deps="nvenc"
+ h264_nvenc_encoder_select="atsc_a53"
+ h264_omx_encoder_deps="omx"
+@@ -3202,6 +3207,9 @@ hevc_mediacodec_encoder_deps="mediacodec"
+ hevc_mediacodec_encoder_extralibs="-landroid"
+ hevc_mediacodec_encoder_select="hevc_metadata"
  hevc_mf_encoder_deps="mediafoundation"
- hevc_nvenc_encoder_deps="nvenc"
- hevc_nvenc_encoder_select="atsc_a53"
 +hevc_nvmpi_encoder_deps="nvmpi"
- hevc_qsv_decoder_select="hevc_mp4toannexb_bsf qsvdec"
- hevc_qsv_encoder_select="hevcparse qsvenc"
- hevc_rkmpp_decoder_deps="rkmpp"
- hevc_rkmpp_decoder_select="hevc_mp4toannexb_bsf"
 +hevc_nvmpi_decoder_deps="nvmpi"
 +hevc_nvmpi_decoder_select="hevc_mp4toannexb_bsf"
- hevc_vaapi_encoder_deps="VAEncPictureParameterBufferHEVC"
- hevc_vaapi_encoder_select="atsc_a53 cbs_h265 vaapi_encode"
- hevc_v4l2m2m_decoder_deps="v4l2_m2m hevc_v4l2_m2m"
-@@ -3218,6 +3226,7 @@ mpeg1_cuvid_decoder_deps="cuvid"
+ hevc_nvenc_encoder_deps="nvenc"
+ hevc_nvenc_encoder_select="atsc_a53"
+ hevc_qsv_decoder_select="hevc_mp4toannexb_bsf qsvdec"
+@@ -3224,6 +3232,7 @@ mpeg1_cuvid_decoder_deps="cuvid"
  mpeg1_v4l2m2m_decoder_deps="v4l2_m2m mpeg1_v4l2_m2m"
  mpeg2_crystalhd_decoder_select="crystalhd"
  mpeg2_cuvid_decoder_deps="cuvid"
@@ -56,7 +46,7 @@ index b6616f0..d66e140 100755
  mpeg2_mmal_decoder_deps="mmal"
  mpeg2_mediacodec_decoder_deps="mediacodec"
  mpeg2_qsv_decoder_select="qsvdec"
-@@ -3226,6 +3235,7 @@ mpeg2_vaapi_encoder_select="cbs_mpeg2 vaapi_encode"
+@@ -3232,6 +3241,7 @@ mpeg2_vaapi_encoder_select="cbs_mpeg2 vaapi_encode"
  mpeg2_v4l2m2m_decoder_deps="v4l2_m2m mpeg2_v4l2_m2m"
  mpeg4_crystalhd_decoder_select="crystalhd"
  mpeg4_cuvid_decoder_deps="cuvid"
@@ -64,7 +54,7 @@ index b6616f0..d66e140 100755
  mpeg4_mediacodec_decoder_deps="mediacodec"
  mpeg4_mmal_decoder_deps="mmal"
  mpeg4_omx_encoder_deps="omx"
-@@ -3238,6 +3248,7 @@ vc1_mmal_decoder_deps="mmal"
+@@ -3244,6 +3254,7 @@ vc1_mmal_decoder_deps="mmal"
  vc1_qsv_decoder_select="qsvdec"
  vc1_v4l2m2m_decoder_deps="v4l2_m2m vc1_v4l2_m2m"
  vp8_cuvid_decoder_deps="cuvid"
@@ -72,7 +62,7 @@ index b6616f0..d66e140 100755
  vp8_mediacodec_decoder_deps="mediacodec"
  vp8_qsv_decoder_select="qsvdec"
  vp8_rkmpp_decoder_deps="rkmpp"
-@@ -3246,6 +3257,7 @@ vp8_vaapi_encoder_select="vaapi_encode"
+@@ -3252,6 +3263,7 @@ vp8_vaapi_encoder_select="vaapi_encode"
  vp8_v4l2m2m_decoder_deps="v4l2_m2m vp8_v4l2_m2m"
  vp8_v4l2m2m_encoder_deps="v4l2_m2m vp8_v4l2_m2m"
  vp9_cuvid_decoder_deps="cuvid"
@@ -80,118 +70,118 @@ index b6616f0..d66e140 100755
  vp9_mediacodec_decoder_deps="mediacodec"
  vp9_qsv_decoder_select="qsvdec"
  vp9_rkmpp_decoder_deps="rkmpp"
-@@ -6795,6 +6807,7 @@ enabled rkmpp             && { require_pkg_config rkmpp rockchip_mpp  rockchip/r
-                                  die "ERROR: rkmpp requires --enable-libdrm"; }
-                              }
- enabled vapoursynth       && require_pkg_config vapoursynth "vapoursynth-script >= 42" VSScript.h vsscript_init
+@@ -6740,6 +6752,7 @@ enabled libvpx            && {
+ enabled libwebp           && {
+     enabled libwebp_encoder      && require_pkg_config libwebp "libwebp >= 0.2.0" webp/encode.h WebPGetEncoderVersion
+     enabled libwebp_anim_encoder && check_pkg_config libwebp_anim_encoder "libwebpmux >= 0.4.0" webp/mux.h WebPAnimEncoderOptionsInit; }
 +enabled nvmpi		  && require_pkg_config nvmpi nvmpi nvmpi.h nvmpi_create_decoder
- 
- 
- if enabled gcrypt; then
+ enabled libx264           && require_pkg_config libx264 x264 "stdint.h x264.h" x264_encoder_encode &&
+                              require_cpp_condition libx264 x264.h "X264_BUILD >= 122" && {
+                              [ "$toolchain" != "msvc" ] ||
 diff --git a/libavcodec/Makefile b/libavcodec/Makefile
-index 389253f..de624e0 100644
+index 389253f..6c4816a 100644
 --- a/libavcodec/Makefile
 +++ b/libavcodec/Makefile
-@@ -409,6 +409,8 @@ OBJS-$(CONFIG_H264_MEDIACODEC_ENCODER) += mediacodecenc.o
+@@ -408,6 +408,8 @@ OBJS-$(CONFIG_H264_MEDIACODEC_DECODER) += mediacodecdec.o
+ OBJS-$(CONFIG_H264_MEDIACODEC_ENCODER) += mediacodecenc.o
  OBJS-$(CONFIG_H264_MF_ENCODER)         += mfenc.o mf_utils.o
  OBJS-$(CONFIG_H264_MMAL_DECODER)       += mmaldec.o
- OBJS-$(CONFIG_H264_NVENC_ENCODER)      += nvenc_h264.o nvenc.o
 +OBJS-$(CONFIG_H264_NVMPI_DECODER)      += nvmpi_dec.o
 +OBJS-$(CONFIG_H264_NVMPI_ENCODER)      += nvmpi_enc.o
+ OBJS-$(CONFIG_H264_NVENC_ENCODER)      += nvenc_h264.o nvenc.o
  OBJS-$(CONFIG_H264_OMX_ENCODER)        += omx.o
  OBJS-$(CONFIG_H264_QSV_DECODER)        += qsvdec.o
- OBJS-$(CONFIG_H264_QSV_ENCODER)        += qsvenc_h264.o
-@@ -442,6 +444,8 @@ OBJS-$(CONFIG_HEVC_VAAPI_ENCODER)      += vaapi_encode_h265.o h265_profile_level
-                                           h2645data.o
- OBJS-$(CONFIG_HEVC_V4L2M2M_DECODER)    += v4l2_m2m_dec.o
- OBJS-$(CONFIG_HEVC_V4L2M2M_ENCODER)    += v4l2_m2m_enc.o
+@@ -433,6 +435,8 @@ OBJS-$(CONFIG_HEVC_CUVID_DECODER)      += cuviddec.o
+ OBJS-$(CONFIG_HEVC_MEDIACODEC_DECODER) += mediacodecdec.o
+ OBJS-$(CONFIG_HEVC_MEDIACODEC_ENCODER) += mediacodecenc.o
+ OBJS-$(CONFIG_HEVC_MF_ENCODER)         += mfenc.o mf_utils.o
 +OBJS-$(CONFIG_HEVC_NVMPI_DECODER)      += nvmpi_dec.o
 +OBJS-$(CONFIG_HEVC_NVMPI_ENCODER)      += nvmpi_enc.o
- OBJS-$(CONFIG_HEVC_VIDEOTOOLBOX_ENCODER) += videotoolboxenc.o
- OBJS-$(CONFIG_HNM4_VIDEO_DECODER)      += hnm4video.o
- OBJS-$(CONFIG_HQ_HQA_DECODER)          += hq_hqa.o hq_hqadata.o hq_hqadsp.o \
-@@ -535,12 +539,14 @@ OBJS-$(CONFIG_MPEG2_QSV_ENCODER)       += qsvenc_mpeg2.o
+ OBJS-$(CONFIG_HEVC_NVENC_ENCODER)      += nvenc_hevc.o nvenc.o
+ OBJS-$(CONFIG_HEVC_QSV_DECODER)        += qsvdec.o
+ OBJS-$(CONFIG_HEVC_QSV_ENCODER)        += qsvenc_hevc.o hevc_ps_enc.o       \
+@@ -534,12 +538,14 @@ OBJS-$(CONFIG_MPEG2_QSV_DECODER)       += qsvdec.o
+ OBJS-$(CONFIG_MPEG2_QSV_ENCODER)       += qsvenc_mpeg2.o
  OBJS-$(CONFIG_MPEG2VIDEO_DECODER)      += mpeg12dec.o mpeg12.o mpeg12data.o
  OBJS-$(CONFIG_MPEG2VIDEO_ENCODER)      += mpeg12enc.o mpeg12.o
++OBJS-$(CONFIG_MPEG2_NVMPI_DECODER)      += nvmpi_dec.o
  OBJS-$(CONFIG_MPEG2_CUVID_DECODER)     += cuviddec.o
-+OBJS-$(CONFIG_MPEG2_NVMPI_DECODER)     += nvmpi_dec.o
  OBJS-$(CONFIG_MPEG2_MEDIACODEC_DECODER) += mediacodecdec.o
  OBJS-$(CONFIG_MPEG2_VAAPI_ENCODER)     += vaapi_encode_mpeg2.o
  OBJS-$(CONFIG_MPEG2_V4L2M2M_DECODER)   += v4l2_m2m_dec.o
  OBJS-$(CONFIG_MPEG4_DECODER)           += mpeg4videodsp.o xvididct.o
  OBJS-$(CONFIG_MPEG4_ENCODER)           += mpeg4videoenc.o
++OBJS-$(CONFIG_MPEG4_NVMPI_DECODER)      += nvmpi_dec.o
  OBJS-$(CONFIG_MPEG4_CUVID_DECODER)     += cuviddec.o
-+OBJS-$(CONFIG_MPEG4_NVMPI_DECODER)     += nvmpi_dec.o
  OBJS-$(CONFIG_MPEG4_MEDIACODEC_DECODER) += mediacodecdec.o
  OBJS-$(CONFIG_MPEG4_OMX_ENCODER)       += omx.o
- OBJS-$(CONFIG_MPEG4_V4L2M2M_DECODER)   += v4l2_m2m_dec.o
-@@ -763,6 +769,7 @@ OBJS-$(CONFIG_VP6_DECODER)             += vp6.o vp56.o vp56data.o \
+@@ -762,6 +768,7 @@ OBJS-$(CONFIG_VP6_DECODER)             += vp6.o vp56.o vp56data.o \
+                                           vp6dsp.o vpx_rac.o
  OBJS-$(CONFIG_VP7_DECODER)             += vp8.o vpx_rac.o
  OBJS-$(CONFIG_VP8_DECODER)             += vp8.o vpx_rac.o
++OBJS-$(CONFIG_VP8_NVMPI_DECODER)      += nvmpi_dec.o
  OBJS-$(CONFIG_VP8_CUVID_DECODER)       += cuviddec.o
-+OBJS-$(CONFIG_VP8_NVMPI_DECODER)       += nvmpi_dec.o
  OBJS-$(CONFIG_VP8_MEDIACODEC_DECODER)  += mediacodecdec.o
  OBJS-$(CONFIG_VP8_QSV_DECODER)         += qsvdec.o
- OBJS-$(CONFIG_VP8_RKMPP_DECODER)       += rkmppdec.o
-@@ -773,6 +780,7 @@ OBJS-$(CONFIG_VP9_DECODER)             += vp9.o vp9data.o vp9dsp.o vp9lpf.o vp9r
+@@ -772,6 +779,7 @@ OBJS-$(CONFIG_VP8_V4L2M2M_ENCODER)     += v4l2_m2m_enc.o
+ OBJS-$(CONFIG_VP9_DECODER)             += vp9.o vp9data.o vp9dsp.o vp9lpf.o vp9recon.o \
                                            vp9block.o vp9prob.o vp9mvs.o vpx_rac.o \
                                            vp9dsp_8bpp.o vp9dsp_10bpp.o vp9dsp_12bpp.o
++OBJS-$(CONFIG_VP9_NVMPI_DECODER)      += nvmpi_dec.o
  OBJS-$(CONFIG_VP9_CUVID_DECODER)       += cuviddec.o
-+OBJS-$(CONFIG_VP9_NVMPI_DECODER)       += nvmpi_dec.o
  OBJS-$(CONFIG_VP9_MEDIACODEC_DECODER)  += mediacodecdec.o
  OBJS-$(CONFIG_VP9_RKMPP_DECODER)       += rkmppdec.o
- OBJS-$(CONFIG_VP9_VAAPI_ENCODER)       += vaapi_encode_vp9.o
 diff --git a/libavcodec/allcodecs.c b/libavcodec/allcodecs.c
-index e593ad1..954ed1b 100644
+index e593ad1..a667192 100644
 --- a/libavcodec/allcodecs.c
 +++ b/libavcodec/allcodecs.c
-@@ -158,11 +158,15 @@ extern const FFCodec ff_h264_mediacodec_encoder;
- extern const FFCodec ff_h264_mmal_decoder;
- extern const FFCodec ff_h264_qsv_decoder;
- extern const FFCodec ff_h264_rkmpp_decoder;
+@@ -151,6 +151,8 @@ extern const FFCodec ff_h263p_encoder;
+ extern const FFCodec ff_h263p_decoder;
+ extern const FFCodec ff_h263_v4l2m2m_decoder;
+ extern const FFCodec ff_h264_decoder;
 +extern const FFCodec ff_h264_nvmpi_decoder;
 +extern const FFCodec ff_h264_nvmpi_encoder;
+ extern const FFCodec ff_h264_crystalhd_decoder;
+ extern const FFCodec ff_h264_v4l2m2m_decoder;
+ extern const FFCodec ff_h264_mediacodec_decoder;
+@@ -161,6 +163,8 @@ extern const FFCodec ff_h264_rkmpp_decoder;
  extern const FFCodec ff_hap_encoder;
  extern const FFCodec ff_hap_decoder;
  extern const FFCodec ff_hevc_decoder;
- extern const FFCodec ff_hevc_qsv_decoder;
- extern const FFCodec ff_hevc_rkmpp_decoder;
 +extern const FFCodec ff_hevc_nvmpi_decoder;
 +extern const FFCodec ff_hevc_nvmpi_encoder;
+ extern const FFCodec ff_hevc_qsv_decoder;
+ extern const FFCodec ff_hevc_rkmpp_decoder;
  extern const FFCodec ff_hevc_v4l2m2m_decoder;
- extern const FFCodec ff_hnm4_video_decoder;
- extern const FFCodec ff_hq_hqa_decoder;
-@@ -867,20 +871,24 @@ extern const FFCodec ff_mjpeg_vaapi_encoder;
- extern const FFCodec ff_mp3_mf_encoder;
- extern const FFCodec ff_mpeg1_cuvid_decoder;
- extern const FFCodec ff_mpeg2_cuvid_decoder;
+@@ -207,8 +211,10 @@ extern const FFCodec ff_mpeg1video_encoder;
+ extern const FFCodec ff_mpeg1video_decoder;
+ extern const FFCodec ff_mpeg2video_encoder;
+ extern const FFCodec ff_mpeg2video_decoder;
 +extern const FFCodec ff_mpeg2_nvmpi_decoder;
- extern const FFCodec ff_mpeg2_qsv_encoder;
- extern const FFCodec ff_mpeg2_vaapi_encoder;
- extern const FFCodec ff_mpeg4_cuvid_decoder;
+ extern const FFCodec ff_mpeg4_encoder;
+ extern const FFCodec ff_mpeg4_decoder;
 +extern const FFCodec ff_mpeg4_nvmpi_decoder;
- extern const FFCodec ff_mpeg4_mediacodec_decoder;
- extern const FFCodec ff_mpeg4_omx_encoder;
- extern const FFCodec ff_mpeg4_v4l2m2m_encoder;
- extern const FFCodec ff_prores_videotoolbox_encoder;
- extern const FFCodec ff_vc1_cuvid_decoder;
- extern const FFCodec ff_vp8_cuvid_decoder;
+ extern const FFCodec ff_mpeg4_crystalhd_decoder;
+ extern const FFCodec ff_mpeg4_v4l2m2m_decoder;
+ extern const FFCodec ff_mpeg4_mmal_decoder;
+@@ -377,9 +383,11 @@ extern const FFCodec ff_vp6a_decoder;
+ extern const FFCodec ff_vp6f_decoder;
+ extern const FFCodec ff_vp7_decoder;
+ extern const FFCodec ff_vp8_decoder;
 +extern const FFCodec ff_vp8_nvmpi_decoder;
- extern const FFCodec ff_vp8_mediacodec_decoder;
- extern const FFCodec ff_vp8_qsv_decoder;
- extern const FFCodec ff_vp8_v4l2m2m_encoder;
- extern const FFCodec ff_vp8_vaapi_encoder;
- extern const FFCodec ff_vp9_cuvid_decoder;
+ extern const FFCodec ff_vp8_rkmpp_decoder;
+ extern const FFCodec ff_vp8_v4l2m2m_decoder;
+ extern const FFCodec ff_vp9_decoder;
 +extern const FFCodec ff_vp9_nvmpi_decoder;
- extern const FFCodec ff_vp9_mediacodec_decoder;
- extern const FFCodec ff_vp9_qsv_decoder;
- extern const FFCodec ff_vp9_vaapi_encoder;
+ extern const FFCodec ff_vp9_rkmpp_decoder;
+ extern const FFCodec ff_vp9_v4l2m2m_decoder;
+ extern const FFCodec ff_vqa_decoder;
 diff --git a/libavcodec/nvmpi_dec.c b/libavcodec/nvmpi_dec.c
 new file mode 100644
-index 0000000..6ea5aba
+index 0000000..659c28e
 --- /dev/null
 +++ b/libavcodec/nvmpi_dec.c
-@@ -0,0 +1,228 @@
+@@ -0,0 +1,258 @@
 +#include <stdio.h>
 +#include <stdlib.h>
 +#include <sys/time.h>
@@ -213,6 +203,9 @@ index 0000000..6ea5aba
 +#include "codec_internal.h"
 +#endif
 +
++#define OPT_frame_pool_size_MIN 1
++#define OPT_frame_pool_size_MAX 32
++#define OPT_frame_pool_size_DEFAULT 5
 +
 +typedef struct {
 +	char eos_reached;
@@ -220,6 +213,7 @@ index 0000000..6ea5aba
 +	AVClass *av_class;
 +	AVFrame *bufFrame;
 +	char *resize_expr;
++	int frame_pool_size;
 +} nvmpiDecodeContext;
 +
 +static nvCodingType nvmpi_get_codingtype(AVCodecContext *avctx)
@@ -236,66 +230,78 @@ index 0000000..6ea5aba
 +};
 +
 +
-+static int nvmpi_init_decoder(AVCodecContext *avctx){
-+
++static int nvmpi_init_decoder(AVCodecContext *avctx)
++{
 +	nvmpiDecodeContext *nvmpi_context = avctx->priv_data;
-+	nvCodingType codectype=NV_VIDEO_CodingUnused;
-+	nvSize resized = {0};
++	nvDecParam param={0};
 +	
-+	codectype =nvmpi_get_codingtype(avctx);
-+	if (codectype == NV_VIDEO_CodingUnused) {
++	param.codingType =nvmpi_get_codingtype(avctx);
++	if (param.codingType == NV_VIDEO_CodingUnused)
++	{
 +		av_log(avctx, AV_LOG_ERROR, "Unknown codec type (%d).\n", avctx->codec_id);
 +		return AVERROR_UNKNOWN;
++	}
++	
++	param.frame_pool_size = nvmpi_context->frame_pool_size;
++	if(param.frame_pool_size < OPT_frame_pool_size_MIN || param.frame_pool_size > OPT_frame_pool_size_MAX)
++	{
++		av_log(avctx, AV_LOG_WARNING, "Incorrect frame_pool_size specified: %d. Default (%d) will be used.\n", param.frame_pool_size, OPT_frame_pool_size_DEFAULT);
++		param.frame_pool_size = OPT_frame_pool_size_DEFAULT;
 +	}
 +
 +	//Workaround for default pix_fmt not being set, so check if it isnt set and set it,
 +	//or if it is set, but isnt set to something we can work with.
-+
-+	if(avctx->pix_fmt ==AV_PIX_FMT_NONE){
++	if(avctx->pix_fmt ==AV_PIX_FMT_NONE)
++	{
 +		 avctx->pix_fmt=AV_PIX_FMT_YUV420P;
-+	}else if((avctx->pix_fmt != AV_PIX_FMT_YUV420P) && (avctx->pix_fmt != AV_PIX_FMT_YUVJ420P)){
++	}
++	else if((avctx->pix_fmt != AV_PIX_FMT_YUV420P) && (avctx->pix_fmt != AV_PIX_FMT_YUVJ420P))
++	{
 +		av_log(avctx, AV_LOG_ERROR, "Invalid Pix_FMT for NVMPI: Only YUV420P and YUVJ420P are supported\n");
 +		return AVERROR_INVALIDDATA;
 +	}
++	//TODO more pixformats support
++	param.pixFormat = NV_PIX_YUV420;
 +
 +    if (nvmpi_context->resize_expr && sscanf(nvmpi_context->resize_expr, "%dx%d",
-+                                             &resized.width, &resized.height) != 2) {
++                                             &param.resized.width, &param.resized.height) != 2)
++	{
 +        av_log(avctx, AV_LOG_ERROR, "Invalid resize expressions\n");
 +        return AVERROR(EINVAL);
 +    }
 +	
 +	//overwrite avctx w and h if resize option is used
-+	if(resized.width && resized.height)
++	if(param.resized.width && param.resized.height)
 +	{
-+		avctx->width = resized.width;
-+		avctx->height = resized.height;
++		avctx->width = param.resized.width;
++		avctx->height = param.resized.height;
 +	}
 +
 +	nvmpi_context->bufFrame = av_frame_alloc();
 +	nvmpi_context->bufFrame->width = avctx->width;
 +	nvmpi_context->bufFrame->height = avctx->height;
-+	if (ff_get_buffer(avctx, nvmpi_context->bufFrame, 0) < 0) {
++	if (ff_get_buffer(avctx, nvmpi_context->bufFrame, 0) < 0)
++	{
 +		av_frame_free(&(nvmpi_context->bufFrame));
 +		nvmpi_context->bufFrame = NULL;
 +		return AVERROR(ENOMEM);
 +	}
 +
-+	nvmpi_context->ctx=nvmpi_create_decoder(codectype, NV_PIX_YUV420, resized);
++	nvmpi_context->ctx=nvmpi_create_decoder(&param);
 +
-+	if(!nvmpi_context->ctx){
++	if(!nvmpi_context->ctx)
++	{
 +		av_frame_free(&(nvmpi_context->bufFrame));
 +		nvmpi_context->bufFrame = NULL;
 +		av_log(avctx, AV_LOG_ERROR, "Failed to nvmpi_create_decoder (code = %d).\n", AVERROR_EXTERNAL);
 +		return AVERROR_EXTERNAL;
 +	}
++	
 +   return 0;
-+
 +}
 +
-+
-+
-+static int nvmpi_close(AVCodecContext *avctx){
-+
++static int nvmpi_close(AVCodecContext *avctx)
++{
 +	nvmpiDecodeContext *nvmpi_context = avctx->priv_data;
 +	if(nvmpi_context->bufFrame)
 +	{
@@ -303,13 +309,12 @@ index 0000000..6ea5aba
 +		nvmpi_context->bufFrame = NULL;
 +	}
 +	return nvmpi_decoder_close(nvmpi_context->ctx);
-+
 +}
 +
 +#if LIBAVCODEC_VERSION_MAJOR >= 60
-+static int nvmpi_decode(AVCodecContext *avctx,AVFrame *data,int *got_frame, AVPacket *avpkt)
++static int nvmpi_decode(AVCodecContext *avctx, AVFrame *data, int *got_frame, AVPacket *avpkt)
 +#else
-+static int nvmpi_decode(AVCodecContext *avctx,void *data,int *got_frame, AVPacket *avpkt)
++static int nvmpi_decode(AVCodecContext *avctx, void *data, int *got_frame, AVPacket *avpkt)
 +#endif
 +{
 +	nvmpiDecodeContext *nvmpi_context = avctx->priv_data;
@@ -318,13 +323,23 @@ index 0000000..6ea5aba
 +	nvFrame _nvframe={0};
 +	nvPacket packet;
 +	int res;
++	int decode_ret = avpkt->size;
 +
-+	if(avpkt->size){
++	if(avpkt->size)
++	{
 +		packet.payload_size=avpkt->size;
 +		packet.payload=avpkt->data;
 +		packet.pts=avpkt->pts;
 +
 +		res=nvmpi_decoder_put_packet(nvmpi_context->ctx,&packet);
++		if(res < 0)
++		{
++			if(res == -1)
++			{
++				decode_ret = AVERROR(EAGAIN); //TODO log
++			}
++			//TODO error handling
++		}
 +	}
 +
 +	_nvframe.payload[0] = bufFrame->data[0];
@@ -337,7 +352,9 @@ index 0000000..6ea5aba
 +	res=nvmpi_decoder_get_frame(nvmpi_context->ctx,&_nvframe,avctx->flags & AV_CODEC_FLAG_LOW_DELAY);
 +
 +	if(res<0)
-+		return avpkt->size;
++	{
++		return decode_ret;
++	}
 +
 +	bufFrame->format=AV_PIX_FMT_YUV420P;
 +	bufFrame->pts=_nvframe.timestamp;
@@ -348,14 +365,16 @@ index 0000000..6ea5aba
 +	
 +	bufFrame->width = avctx->width;
 +	bufFrame->height = avctx->height;
-+	if (ff_get_buffer(avctx, bufFrame, 0) < 0) {
++	if (ff_get_buffer(avctx, bufFrame, 0) < 0)
++	{
++		av_log(avctx, AV_LOG_ERROR, "ff_get_buffer failed\n");
 +		return AVERROR(ENOMEM);
 +	}
 +	
 +	frame->metadata = bufFrame->metadata;
 +	bufFrame->metadata = NULL;
 +
-+	return avpkt->size;
++	return decode_ret;
 +}
 +
 +
@@ -363,7 +382,8 @@ index 0000000..6ea5aba
 +#define OFFSET(x) offsetof(nvmpiDecodeContext, x)
 +#define VD AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_DECODING_PARAM
 +static const AVOption options[] = {
-+    { "resize",   "Resize (width)x(height)", OFFSET(resize_expr), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, VD },
++    { "resize",   "Resize (width)x(height)", OFFSET(resize_expr), AV_OPT_TYPE_STRING, { .str = NULL }, 0, 0, VD, "resize" },
++    { "frame_pool_size", "Number of frames that could be buffered in the decoder before user must read it with avcodec_receive_frame()", OFFSET(frame_pool_size), AV_OPT_TYPE_INT, {.i64 = OPT_frame_pool_size_DEFAULT }, OPT_frame_pool_size_MIN, OPT_frame_pool_size_MAX, VD, "frame_pool_size" },
 +    { NULL }
 +};
 +
@@ -422,10 +442,10 @@ index 0000000..6ea5aba
 +
 diff --git a/libavcodec/nvmpi_enc.c b/libavcodec/nvmpi_enc.c
 new file mode 100644
-index 0000000..957b7e0
+index 0000000..deb424b
 --- /dev/null
 +++ b/libavcodec/nvmpi_enc.c
-@@ -0,0 +1,557 @@
+@@ -0,0 +1,567 @@
 +#include <nvmpi.h>
 +#include "avcodec.h"
 +#include "internal.h"
@@ -436,6 +456,7 @@ index 0000000..957b7e0
 +#include "libavutil/imgutils.h"
 +#include "libavutil/log.h"
 +#include "libavutil/opt.h"
++#include "libavutil/mem.h"
 +
 +#include "version.h"
 +
@@ -447,11 +468,15 @@ index 0000000..957b7e0
 +#include "codec_internal.h"
 +#endif
 +
++#define OPT_packet_pool_size_MIN 1
++#define OPT_packet_pool_size_MAX 32
++#define OPT_packet_pool_size_DEFAULT 5
 +
 +typedef struct {
 +	const AVClass *class;
 +	nvmpictx* ctx;
 +	int num_capture_buffers;
++	int packet_pool_size;
 +	int profile;
 +	int level;
 +	int rc;
@@ -571,6 +596,7 @@ index 0000000..957b7e0
 +	param.profile=nvmpi_context->profile& ~FF_PROFILE_H264_INTRA;
 +	param.level=nvmpi_context->level;
 +	param.capture_num=nvmpi_context->num_capture_buffers;
++	//param.packet_pool_size=nvmpi_context->packet_pool_size;
 +	param.hw_preset_type=nvmpi_context->preset;
 +	param.insert_spspps_idr=(avctx->flags & AV_CODEC_FLAG_GLOBAL_HEADER)?0:1;
 +	
@@ -601,8 +627,8 @@ index 0000000..957b7e0
 +	}
 +
 +	//TODO should replace it
-+	if ((avctx->flags & AV_CODEC_FLAG_GLOBAL_HEADER) && (avctx->codec->id == AV_CODEC_ID_H264)){
-+
++	if ((avctx->flags & AV_CODEC_FLAG_GLOBAL_HEADER) && (avctx->codec->id == AV_CODEC_ID_H264))
++	{
 +		uint8_t *dst[4];
 +		int linesize[4];
 +		nvFrame _nvframe={0};
@@ -610,12 +636,13 @@ index 0000000..957b7e0
 +		nvmpictx *_ctx;
 +		int i;
 +		int ret;
++		param.codingType = NV_VIDEO_CodingH264;
 +		av_image_alloc(dst, linesize,avctx->width,avctx->height,avctx->pix_fmt,1);
 +
-+		nvmpi_context->ctx = nvmpi_create_encoder(NV_VIDEO_CodingH264,&param);
++		nvmpi_context->ctx = nvmpi_create_encoder(&param);
 +		_ctx = nvmpi_context->ctx;
 +		//TODO error handling. if(!_ctx)
-+		nvmpienc_initPktPool(avctx,nvmpi_context->num_capture_buffers);
++		nvmpienc_initPktPool(avctx,nvmpi_context->packet_pool_size);
 +		i=0;
 +
 +		while(true)
@@ -663,7 +690,7 @@ index 0000000..957b7e0
 +			if(ret < 0)
 +			{
 +				if(ret == -2) break; //got eos
-+				usleep(1000);
++				//usleep(1000);
 +				continue;
 +			}
 +			nvmpienc_nvPacket_free(nPkt);
@@ -679,17 +706,19 @@ index 0000000..957b7e0
 +
 +	if(avctx->codec->id == AV_CODEC_ID_H264)
 +	{
-+		nvmpi_context->ctx=nvmpi_create_encoder(NV_VIDEO_CodingH264,&param);
++		param.codingType = NV_VIDEO_CodingH264;
++		nvmpi_context->ctx=nvmpi_create_encoder(&param);
 +	}
 +	else if(avctx->codec->id == AV_CODEC_ID_HEVC)
 +	{
-+		nvmpi_context->ctx=nvmpi_create_encoder(NV_VIDEO_CodingHEVC,&param);
++		param.codingType = NV_VIDEO_CodingHEVC;
++		nvmpi_context->ctx=nvmpi_create_encoder(&param);
 +	}
 +	//else TODO
 +	
 +	if(nvmpi_context->ctx)
 +	{
-+		nvmpienc_initPktPool(avctx,nvmpi_context->num_capture_buffers);
++		nvmpienc_initPktPool(avctx,nvmpi_context->packet_pool_size);
 +	}
 +	//TODO error handling. if(!nvmpi_context->ctx)
 +
@@ -846,7 +875,7 @@ index 0000000..957b7e0
 +			if(ret < 0)
 +			{
 +				if(ret == -2) break; //got eos
-+				usleep(1000);
++				//usleep(1000);
 +				continue;
 +			}
 +			nvmpienc_nvPacket_free(nPkt);
@@ -884,7 +913,8 @@ index 0000000..957b7e0
 +#define VE AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
 +
 +static const AVOption options[] = {
-+	{ "num_capture_buffers", "Number of buffers in the capture context", OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 10 }, 1, 32, AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM },
++	{ "num_capture_buffers", "Number of buffers in the capture context", OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 10 }, 1, 32, VE, "num_capture_buffers" },
++	{ "packet_pool_size", "Number of packets that could be buffered in the encoder before user must read it with avcodec_receive_packet()", OFFSET(packet_pool_size), AV_OPT_TYPE_INT, {.i64 = OPT_packet_pool_size_DEFAULT }, OPT_packet_pool_size_MIN, OPT_packet_pool_size_MAX, VE, "packet_pool_size" },
 +	/// Profile,
 +
 +	{ "profile",  "Set the encoding profile", OFFSET(profile), AV_OPT_TYPE_INT,   { .i64 = FF_PROFILE_UNKNOWN },       FF_PROFILE_UNKNOWN, FF_PROFILE_H264_HIGH, VE, "profile" },

@@ -5,8 +5,12 @@ git clone git://source.ffmpeg.org/ffmpeg.git -b release/4.2 --depth=1 ffmpeg4.2
 git clone git://source.ffmpeg.org/ffmpeg.git -b release/4.4 --depth=1 ffmpeg4.4
 git clone git://source.ffmpeg.org/ffmpeg.git -b release/6.0 --depth=1 ffmpeg6.0
 
-#copy data
-source copy_files.sh
+#update ffmpeg code
+cd ..
+./ffpatch.sh ./ffmpeg_dev/ffmpeg4.2
+./ffpatch.sh ./ffmpeg_dev/ffmpeg4.4
+./ffpatch.sh ./ffmpeg_dev/ffmpeg6.0
+cd ffmpeg_dev
 
 #
 cd ./ffmpeg4.2
