@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include <dlfcn.h>
 #include <nvmpi.h>
 #include "avcodec.h"
 #include "decode.h"
@@ -23,6 +24,19 @@
 #define OPT_frame_pool_size_MAX 32
 #define OPT_frame_pool_size_DEFAULT 5
 
+struct NVMPIFunctions
+{
+	void* lib;
+	
+	nvmpictx* (*nvmpi_create_decoder)(nvDecParam* param);
+
+	int (*nvmpi_decoder_put_packet)(nvmpictx* ctx, nvPacket* packet);
+
+	int (*nvmpi_decoder_get_frame)(nvmpictx* ctx, nvFrame* frame,bool wait);
+
+	int (*nvmpi_decoder_close)(nvmpictx* ctx);
+}
+
 typedef struct {
 	char eos_reached;
 	nvmpictx* ctx;
@@ -30,6 +44,7 @@ typedef struct {
 	AVFrame *bufFrame;
 	char *resize_expr;
 	int frame_pool_size;
+	NVMPIFunctions nvmpi;
 } nvmpiDecodeContext;
 
 static nvCodingType nvmpi_get_codingtype(AVCodecContext *avctx)
@@ -49,6 +64,25 @@ static nvCodingType nvmpi_get_codingtype(AVCodecContext *avctx)
 static int nvmpi_init_decoder(AVCodecContext *avctx)
 {
 	nvmpiDecodeContext *nvmpi_context = avctx->priv_data;
+	nvmpi_context->nvmpi.lib = dlopen("libnvmpi.so", RTLD_NOW);
+	if (!nvmpi_context.lib)
+	{
+		av_log(avctx, AV_LOG_ERROR, "load libnvmpi.so fail!\n");
+		return AVERROR_UNKNOWN;
+	}
+#define LOAD_SYMBOL(sym) \
+    nvmpi_context.nvmpi.sym = dlsym(nvmpi_context.nvmpi.lib, sym);\
+	if (nvmpi_context.nvmpi.sym == NULL)\
+	{\
+		av_log(avctx, AV_LOG_ERROR, "dlsym "#sym" fail!\n");\
+		return AVERROR_UNKNOWN;\
+	}
+	
+	LOAD_SYMBOL(nvmpi_create_decoder);
+	LOAD_SYMBOL(nvmpi_decoder_put_packet);
+	LOAD_SYMBOL(nvmpi_decoder_get_frame);
+	LOAD_SYMBOL(nvmpi_decoder_close);
+	
 	nvDecParam param={0};
 	
 	param.codingType =nvmpi_get_codingtype(avctx);
@@ -69,11 +103,11 @@ static int nvmpi_init_decoder(AVCodecContext *avctx)
 	//or if it is set, but isnt set to something we can work with.
 	if(avctx->pix_fmt ==AV_PIX_FMT_NONE)
 	{
-		 avctx->pix_fmt=AV_PIX_FMT_YUV420P;
+		 avctx->pix_fmt=AV_PIX_FMT_NV12;
 	}
-	else if((avctx->pix_fmt != AV_PIX_FMT_YUV420P) && (avctx->pix_fmt != AV_PIX_FMT_YUVJ420P))
+	else if(!(avctx->pix_fmt == AV_PIX_FMT_YUV420P || avctx->pix_fmt == AV_PIX_FMT_YUVJ420P || avctx->pix_fmt == AV_PIX_FMT_NV12))
 	{
-		av_log(avctx, AV_LOG_ERROR, "Invalid Pix_FMT for NVMPI: Only YUV420P and YUVJ420P are supported\n");
+		av_log(avctx, AV_LOG_ERROR, "Invalid Pix_FMT for NVMPI: Only YUV420P YUVJ420P NV12 are supported\n");
 		return AVERROR_INVALIDDATA;
 	}
 	//TODO more pixformats support
@@ -103,7 +137,7 @@ static int nvmpi_init_decoder(AVCodecContext *avctx)
 		return AVERROR(ENOMEM);
 	}
 
-	nvmpi_context->ctx=nvmpi_create_decoder(&param);
+	nvmpi_context->ctx=nvmpi_context->nvmpi.nvmpi_create_decoder(&param);
 
 	if(!nvmpi_context->ctx)
 	{
@@ -124,7 +158,7 @@ static int nvmpi_close(AVCodecContext *avctx)
 		av_frame_free(&(nvmpi_context->bufFrame));
 		nvmpi_context->bufFrame = NULL;
 	}
-	return nvmpi_decoder_close(nvmpi_context->ctx);
+	return nvmpi_context->nvmpi.nvmpi_decoder_close(nvmpi_context->ctx);
 }
 
 #if LIBAVCODEC_VERSION_MAJOR >= 60
@@ -147,7 +181,7 @@ static int nvmpi_decode(AVCodecContext *avctx, void *data, int *got_frame, AVPac
 		packet.payload=avpkt->data;
 		packet.pts=avpkt->pts;
 
-		res=nvmpi_decoder_put_packet(nvmpi_context->ctx,&packet);
+		res=nvmpi_context->nvmpi.nvmpi_decoder_put_packet(nvmpi_context->ctx,&packet);
 		if(res < 0)
 		{
 			if(res == -1)
@@ -165,7 +199,7 @@ static int nvmpi_decode(AVCodecContext *avctx, void *data, int *got_frame, AVPac
 	_nvframe.linesize[1] = bufFrame->linesize[1];
 	_nvframe.linesize[2] = bufFrame->linesize[2];
 
-	res=nvmpi_decoder_get_frame(nvmpi_context->ctx,&_nvframe,avctx->flags & AV_CODEC_FLAG_LOW_DELAY);
+	res=nvmpi_context->nvmpi.nvmpi_decoder_get_frame(nvmpi_context->ctx,&_nvframe,avctx->flags & AV_CODEC_FLAG_LOW_DELAY);
 
 	if(res<0)
 	{
