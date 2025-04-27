@@ -1,6 +1,9 @@
 #pragma once
 #include "nvUtils2NvBuf.h"
-#include <memcory>
+#include <memory>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <cudaEGL.h>
 
 struct NVMPI_frameBuf
 {
@@ -9,7 +12,7 @@ struct NVMPI_frameBuf
 
 	NvBufSurface* mDstDMASurface = NULL;
 
-	std::std::shared_ptr<int> mDMAfd;
+	std::shared_ptr<int> mDMAfd;
 	std::shared_ptr<CUgraphicsResource> mCUResource;
 	std::shared_ptr<CUeglFrame> mCUFrame;
 	unsigned long long mTimestamp = 0;

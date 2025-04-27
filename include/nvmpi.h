@@ -2,7 +2,7 @@
 #define __NVMPI_H__
 #include <stdlib.h>
 #include <stdbool.h>
-#include <memory.h>
+#include <memory>
 
 //Maximum size of the encoded buffers on the capture plane in bytes 
 #define NVMPI_ENC_CHUNK_SIZE 2*1024*1024

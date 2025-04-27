@@ -1,5 +1,6 @@
 #include "NVMPI_frameBuf.hpp"
-#include <iostream> //LOG. TODO: add some LOG() define
+#include <iostream>
+
 
 NVMPI_frameBuf::NVMPI_frameBuf()
 {
@@ -17,7 +18,7 @@ bool NVMPI_frameBuf::alloc(NvBufferCreateParams& input_params)
 	ret = NvBufSurf::NvAllocate(&input_params, 1, &dma_fd);
 	if(ret<0)
 	{
-		std::err << "Failed to allocate buffer" << std::endl;
+		std::cerr << "Failed to allocate buffer" << std::endl;
 		return false;
 	}
 	
@@ -30,7 +31,7 @@ bool NVMPI_frameBuf::alloc(NvBufferCreateParams& input_params)
 	ret = NvBufSurfaceFromFd(dma_fd, (void**)&nvbuf_surf);
 	if(ret<0)
 	{
-		std::err << "Failed to get surface for buffer" << std::endl;
+		std::cerr << "Failed to get surface for buffer" << std::endl;
 		return false;
 	}
 		
@@ -47,36 +48,34 @@ bool NVMPI_frameBuf::alloc(NvBufferCreateParams& input_params)
 	auto eglImage = nvbuf_surf->surfaceList[0].mappedAddr.eglImage;
 	if (eglImage == NULL)
 	{
-		std::cerr << "Error while mapping dmabuf fd ("
-			<< dmaBufferFileDescriptor[index] << ") to EGLImage"
-			<< endl;
+		std::cerr << "Error while mapping dmabuf fd (" << dma_fd << ") to EGLImage" << std::endl;
 		return false;
 	}
 
 	cudaFree(0);
 	CUgraphicsResource *pResource = new CUgraphicsResource;
-	status = cuGraphicsEGLRegisterImage(pResource, eglImage, CU_GRAPHICS_MAP_RESOURCE_FLAGS_NONE);
+	auto status = cuGraphicsEGLRegisterImage(pResource, eglImage, CU_GRAPHICS_MAP_RESOURCE_FLAGS_NONE);
 	if (status != CUDA_SUCCESS)
 	{
 		delete pResource;
 		fprintf(stderr, "cuGraphicsEGLRegisterImage failed: %d, cuda process stop\n", status);
-		continue;
+		return false;
 	}
-	mCUResource = std::shared_ptr<CUgraphicsResource>(pResource, [](CUgraphicsResource* res) {
+	mCUResource = std::shared_ptr<CUgraphicsResource>(pResource, [nvbuf_surf](CUgraphicsResource* res) {
 		NvBufSurfaceUnMapEglImage(nvbuf_surf, 0);
 		cuGraphicsUnregisterResource(*res);
 		delete res;
 	});
 	
-	CUeglFrame eglFrame = NULL;
-	status = cuGraphicsResourceGetMappedEglFrame(&eglFrame, cuResources[index], 0, 0);
+	CUeglFrame eglFrame;
+	status = cuGraphicsResourceGetMappedEglFrame(&eglFrame, *pResource, 0, 0);
 	if (status != CUDA_SUCCESS)
 	{
 		fprintf(stderr, "cuGraphicsSubResourceGetMappedArray failed:%d\n", status);
-		continue;
+		return false;
 	}
 	mDstDMASurface = nvbuf_surf;
-	mCUFrame = eglFrame;
+	mCUFrame = std::make_shared<CUeglFrame>(eglFrame);
 	return true;
 }
 
