@@ -24,18 +24,15 @@
 #define OPT_frame_pool_size_MAX 32
 #define OPT_frame_pool_size_DEFAULT 5
 
+void* g_nvmpi_lib = NULL;
+
 struct NVMPIFunctions
 {
-	void* lib;
-	
 	nvmpictx* (*nvmpi_create_decoder)(nvDecParam* param);
-
 	int (*nvmpi_decoder_put_packet)(nvmpictx* ctx, nvPacket* packet);
-
 	int (*nvmpi_decoder_get_frame)(nvmpictx* ctx, nvFrame* frame,bool wait);
-
 	int (*nvmpi_decoder_close)(nvmpictx* ctx);
-}
+};
 
 typedef struct {
 	char eos_reached;
@@ -64,15 +61,15 @@ static nvCodingType nvmpi_get_codingtype(AVCodecContext *avctx)
 static int nvmpi_init_decoder(AVCodecContext *avctx)
 {
 	nvmpiDecodeContext *nvmpi_context = avctx->priv_data;
-	nvmpi_context->nvmpi.lib = dlopen("libnvmpi.so", RTLD_NOW);
-	if (!nvmpi_context.lib)
+	g_nvmpi_lib = dlopen("libnvmpi.so", RTLD_NOW);
+	if (!g_nvmpi_lib)
 	{
 		av_log(avctx, AV_LOG_ERROR, "load libnvmpi.so fail!\n");
 		return AVERROR_UNKNOWN;
 	}
 #define LOAD_SYMBOL(sym) \
-    nvmpi_context.nvmpi.sym = dlsym(nvmpi_context.nvmpi.lib, sym);\
-	if (nvmpi_context.nvmpi.sym == NULL)\
+    nvmpi_context->nvmpi.sym = dlsym(g_nvmpi_lib, ""#sym);\
+	if (nvmpi_context->nvmpi.sym == NULL)\
 	{\
 		av_log(avctx, AV_LOG_ERROR, "dlsym "#sym" fail!\n");\
 		return AVERROR_UNKNOWN;\
@@ -101,9 +98,11 @@ static int nvmpi_init_decoder(AVCodecContext *avctx)
 
 	//Workaround for default pix_fmt not being set, so check if it isnt set and set it,
 	//or if it is set, but isnt set to something we can work with.
-	if(avctx->pix_fmt ==AV_PIX_FMT_NONE)
+	param.pixFormat = NV_PIX_YUV420;
+	if(avctx->pix_fmt == AV_PIX_FMT_NONE)
 	{
-		 avctx->pix_fmt=AV_PIX_FMT_NV12;
+		 avctx->pix_fmt = AV_PIX_FMT_NV12;
+    	 param.pixFormat = NV_PIX_NV12;
 	}
 	else if(!(avctx->pix_fmt == AV_PIX_FMT_YUV420P || avctx->pix_fmt == AV_PIX_FMT_YUVJ420P || avctx->pix_fmt == AV_PIX_FMT_NV12))
 	{
@@ -111,7 +110,6 @@ static int nvmpi_init_decoder(AVCodecContext *avctx)
 		return AVERROR_INVALIDDATA;
 	}
 	//TODO more pixformats support
-	param.pixFormat = NV_PIX_YUV420;
 
     if (nvmpi_context->resize_expr && sscanf(nvmpi_context->resize_expr, "%dx%d",
                                              &param.resized.width, &param.resized.height) != 2)
@@ -206,7 +204,7 @@ static int nvmpi_decode(AVCodecContext *avctx, void *data, int *got_frame, AVPac
 		return decode_ret;
 	}
 
-	bufFrame->format=AV_PIX_FMT_YUV420P;
+	bufFrame->format=avctx->pix_fmt;
 	bufFrame->pts=_nvframe.timestamp;
 	bufFrame->pkt_dts = AV_NOPTS_VALUE;
 	av_frame_move_ref(frame, bufFrame);

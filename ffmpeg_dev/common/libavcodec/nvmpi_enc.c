@@ -25,18 +25,17 @@
 #define OPT_packet_pool_size_MAX 32
 #define OPT_packet_pool_size_DEFAULT 5
 
+extern void* g_nvmpi_lib;
 
 struct NVMPIFunctions
 {
-	void* lib;
-	
 	nvmpictx* (*nvmpi_create_encoder)(nvEncParam* param);
 	int (*nvmpi_encoder_put_frame)(nvmpictx* ctx, nvFrame* frame);
 	int (*nvmpi_encoder_get_packet)(nvmpictx* ctx, nvPacket** packet);
 	int (*nvmpi_encoder_dqEmptyPacket)(nvmpictx* ctx, nvPacket** packet);
 	void (*nvmpi_encoder_qEmptyPacket)(nvmpictx* ctx, nvPacket* packet);
 	int (*nvmpi_encoder_close)(nvmpictx* ctx);
-}
+};
 
 
 typedef struct {
@@ -148,14 +147,16 @@ static av_cold int nvmpi_encode_init(AVCodecContext *avctx)
 {
 	nvmpiEncodeContext * nvmpi_context = avctx->priv_data;
 
-	nvmpi_context->nvmpi.lib = dlopen("libnvmpi.so", RTLD_NOW);
-	if (!nvmpi_context.lib)
+	if (g_nvmpi_lib == NULL)
+		g_nvmpi_lib = dlopen("libnvmpi.so", RTLD_NOW);
+	
+	if (!g_nvmpi_lib)
 	{
 		av_log(avctx, AV_LOG_ERROR, "load libnvmpi.so fail!\n");
 		return AVERROR_UNKNOWN;
 	}
 #define LOAD_SYMBOL(sym) \
-    nvmpi_context.nvmpi.sym = dlsym(nvmpi_context.nvmpi.lib, sym);\
+    nvmpi_context.nvmpi.sym = dlsym(g_nvmpi_lib, ""#sym);\
 	if (nvmpi_context.nvmpi.sym == NULL)\
 	{\
 		av_log(avctx, AV_LOG_ERROR, "dlsym "#sym" fail!\n");\
@@ -469,8 +470,8 @@ static av_cold int nvmpi_encode_close(AVCodecContext *avctx)
 				continue;
 			}
 			nvmpienc_nvPacket_free(nPkt);
-			nPkt = nvmpi_context->nvmpi.nvmpienc_nvPacket_alloc(avctx, NVMPI_ENC_CHUNK_SIZE);
-			nvmpi_encoder_qEmptyPacket(nvmpi_context->ctx, nPkt);
+			nPkt = nvmpienc_nvPacket_alloc(avctx, NVMPI_ENC_CHUNK_SIZE);
+			nvmpi_context->nvmpi.nvmpi_encoder_qEmptyPacket(nvmpi_context->ctx, nPkt);
 		}
 	}
 	

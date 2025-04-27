@@ -2,6 +2,7 @@
 #define __NVMPI_H__
 #include <stdlib.h>
 #include <stdbool.h>
+#include <memory.h>
 
 //Maximum size of the encoded buffers on the capture plane in bytes 
 #define NVMPI_ENC_CHUNK_SIZE 2*1024*1024
@@ -11,7 +12,7 @@ typedef struct nvmpictx nvmpictx;
 typedef enum {
 	NV_PIX_NV12,
 	NV_PIX_YUV420
-}nvPixFormat;
+} nvPixFormat;
 
 typedef enum {
 	NV_VIDEO_CodingUnused,
@@ -27,30 +28,6 @@ typedef struct _NVSIZE{
 	unsigned int width;
 	unsigned int height;
 }nvSize;
-
-typedef struct _NVENCPARAM{
-	unsigned int width;
-	unsigned int height;
-	unsigned int profile;
-	unsigned int level;
-	unsigned int bitrate;
-	unsigned int peak_bitrate;
-	char enableLossless;
-	char mode_vbr;
-	char insert_spspps_idr;
-	unsigned int iframe_interval;
-	unsigned int idr_interval;
-	unsigned int fps_n;
-	unsigned int fps_d;
-	int capture_num;
-	unsigned int max_b_frames;
-	unsigned int refs;
-	unsigned int qmax;
-	unsigned int qmin;
-	unsigned int hw_preset_type;
-	unsigned int vbv_buffer_size; //virtual buffer size of the encoder
-	nvCodingType codingType;
-} nvEncParam;
 
 typedef struct _NVDECPARAM{
 	int frame_pool_size;
@@ -77,31 +54,19 @@ typedef struct _NVFRAME{
 	unsigned int width;
 	unsigned int height;
 	time_t timestamp;
-}nvFrame;
+} nvFrame;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	nvmpictx* nvmpi_create_decoder(nvDecParam* param);
+	std::shared_ptr<nvmpictx> nvmpi_create_decoder(const nvDecParam& param);
 
-	int nvmpi_decoder_put_packet(nvmpictx* ctx, nvPacket* packet);
+	int nvmpi_decoder_put_packet(const std::shared_ptr<nvmpictx> &ctx, const nvPacket& packet);
 
-	int nvmpi_decoder_get_frame(nvmpictx* ctx, nvFrame* frame,bool wait);
+	std::shared_ptr<nvFrame> nvmpi_decoder_get_frame(const std::shared_ptr<nvmpictx> &ctx, bool wait);
 
-	int nvmpi_decoder_close(nvmpictx* ctx);
-
-	nvmpictx* nvmpi_create_encoder(nvEncParam* param);
-	//add frame to encoder
-	int nvmpi_encoder_put_frame(nvmpictx* ctx, nvFrame* frame);
-	//get filled packet from encoder
-	int nvmpi_encoder_get_packet(nvmpictx* ctx, nvPacket** packet);
-	//get empty packet with allocated buffer from encoder packet pool
-	int nvmpi_encoder_dqEmptyPacket(nvmpictx* ctx, nvPacket** packet);
-	//add empty packet with allocated buffer  to  encoder packet pool
-	void nvmpi_encoder_qEmptyPacket(nvmpictx* ctx, nvPacket* packet);
-	//close encoder
-	int nvmpi_encoder_close(nvmpictx* ctx);
+	int nvmpi_decoder_close(const std::shared_ptr<nvmpictx> &ctx);
 
 #ifdef __cplusplus
 }

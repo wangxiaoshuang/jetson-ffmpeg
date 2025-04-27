@@ -1,13 +1,18 @@
 #pragma once
 #include "nvUtils2NvBuf.h"
+#include <memcory>
 
 struct NVMPI_frameBuf
 {
-#ifdef WITH_NVUTILS
-	NvBufSurface *dst_dma_surface = NULL;
-#endif
-	int dst_dma_fd = -1;
-	unsigned long long timestamp = 0;
+	NVMPI_frameBuf();
+	virtual ~NVMPI_frameBuf();
+
+	NvBufSurface* mDstDMASurface = NULL;
+
+	std::std::shared_ptr<int> mDMAfd;
+	std::shared_ptr<CUgraphicsResource> mCUResource;
+	std::shared_ptr<CUeglFrame> mCUFrame;
+	unsigned long long mTimestamp = 0;
 	
 	//allocate DMA buffer
 	bool alloc(NvBufferCreateParams& input_params);
