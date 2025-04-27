@@ -266,7 +266,7 @@ void nvmpictx::initFramePool()
 	}
 }
 
-void respondToResolutionEvent(v4l2_format &format, v4l2_crop &crop, std::shared_ptr<nvmpictx> &ctx)
+void respondToResolutionEvent(v4l2_format &format, v4l2_crop &crop, nvmpictx *ctx)
 {
 	int ret=0;
 
@@ -299,7 +299,7 @@ void respondToResolutionEvent(v4l2_format &format, v4l2_crop &crop, std::shared_
 	ctx->updateBufferTransformParams();
 }
 
-void dec_capture_loop_fcn(std::shared_ptr<nvmpictx> ctx)
+void dec_capture_loop_fcn(nvmpictx* ctx)
 {
 	NvVideoDecoder *dec = ctx->dec;
 	
@@ -433,12 +433,12 @@ void dec_capture_loop_fcn(std::shared_ptr<nvmpictx> ctx)
 }
 
 //TODO: accept in nvmpi_create_decoder input stream params (width and height, etc...) from ffmpeg.
-std::shared_ptr<nvmpictx> nvmpi_create_decoder(const nvDecParam& param)
+nvmpictx* nvmpi_create_decoder(nvDecParam* param)
 {
 	int ret;
 	log_level = LOG_LEVEL_INFO;
 
-	std::shared_ptr<nvmpictx> ctx = std::make_shared<nvmpictx>();
+	nvmpictx *ctx = new nvmpictx();
 
 	ctx->dec = NvVideoDecoder::createVideoDecoder("dec0");
 	TEST_ERROR(!ctx->dec, "Could not create decoder",ret);
@@ -501,7 +501,7 @@ std::shared_ptr<nvmpictx> nvmpi_create_decoder(const nvDecParam& param)
 	return ctx;
 }
 
-int nvmpi_decoder_put_packet(std::shared_ptr<nvmpictx> &ctx, const nvPacket& packet)
+int nvmpi_decoder_put_packet(nvmpictx *ctx, nvPacket* packet)
 {
 	int ret;
 	struct v4l2_buffer v4l2_buf;
@@ -529,13 +529,13 @@ int nvmpi_decoder_put_packet(std::shared_ptr<nvmpictx> &ctx, const nvPacket& pac
 		}
 	}
 
-	memcpy(nvBuffer->planes[0].data,packet.payload,packet.payload_size);
-	nvBuffer->planes[0].bytesused=packet.payload_size;
+	memcpy(nvBuffer->planes[0].data,packet->payload, packet->payload_size);
+	nvBuffer->planes[0].bytesused = packet->payload_size;
 	v4l2_buf.m.planes[0].bytesused = nvBuffer->planes[0].bytesused;
 
 	v4l2_buf.flags |= V4L2_BUF_FLAG_TIMESTAMP_COPY;
-	v4l2_buf.timestamp.tv_sec = packet.pts / 1000000;
-	v4l2_buf.timestamp.tv_usec = packet.pts % 1000000;
+	v4l2_buf.timestamp.tv_sec = packet->pts / 1000000;
+	v4l2_buf.timestamp.tv_usec = packet->pts % 1000000;
 
 	ret = ctx->dec->output_plane.qBuffer(v4l2_buf, NULL);
 	if (ret < 0)
@@ -603,21 +603,21 @@ int copyNvBufToFrame(nvmpictx* ctx, NVMPI_frameBuf *nvmpiBuf, nvFrame* frame)
 }
 #endif
 
-std::shared_ptr<nvFrame> nvmpi_decoder_get_frame(const std::shared_ptr<nvmpictx> &ctx, bool wait)
+nvFrame* nvmpi_decoder_get_frame(nvmpictx *ctx, bool wait)
 {
 	int ret;
 	NVMPI_frameBuf* fb = ctx->framePool->dqFilledBuf();
 	if(!fb)
 		return NULL;
 	
-	auto frame = std::make_shared<NVFrame>(ctx->framePool, fb);
+	auto frame = new NVFrame(ctx->framePool, fb);
 	//ret = copyNvBufToFrame(ctx, fb, frame);
 	frame->timestamp=fb->mTimestamp;	
 	
 	return frame;
 }
 
-int nvmpi_decoder_close(const std::shared_ptr<nvmpictx> &ctx)
+int nvmpi_decoder_close(nvmpictx *ctx)
 {
 	ctx->eos=true;
 	ctx->dec->capture_plane.setStreamStatus(false);

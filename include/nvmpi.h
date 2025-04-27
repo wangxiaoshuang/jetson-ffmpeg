@@ -60,13 +60,13 @@ typedef struct _NVFRAME{
 extern "C" {
 #endif
 
-	std::shared_ptr<nvmpictx> nvmpi_create_decoder(const nvDecParam& param);
+	nvmpictx* nvmpi_create_decoder(nvDecParam* param);
 
-	int nvmpi_decoder_put_packet(const std::shared_ptr<nvmpictx> &ctx, const nvPacket& packet);
+	int nvmpi_decoder_put_packet(nvmpictx* ctx, nvPacket* packet);
 
-	std::shared_ptr<nvFrame> nvmpi_decoder_get_frame(const std::shared_ptr<nvmpictx> &ctx, bool wait);
+	nvFrame* nvmpi_decoder_get_frame(nvmpictx *ctx, bool wait);
 
-	int nvmpi_decoder_close(const std::shared_ptr<nvmpictx> &ctx);
+	int nvmpi_decoder_close(nvmpictx *ctx);
 
 #ifdef __cplusplus
 }
