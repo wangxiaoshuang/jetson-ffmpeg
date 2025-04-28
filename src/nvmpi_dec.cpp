@@ -412,7 +412,7 @@ void dec_capture_loop_fcn(nvmpictx* ctx)
 				//no buffers available in the pool. wait for EOS or for user to read.
 				while(!ctx->eos)
 				{
-					std::this_thread::sleep_for(std::chrono::microseconds(100));
+					usleep(10);
 					fb = ctx->framePool->dqEmptyBuf();
 					if(fb)
 					{

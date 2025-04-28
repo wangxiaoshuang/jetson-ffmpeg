@@ -46,6 +46,7 @@ typedef struct _NVPACKET{
 } nvPacket;
 
 typedef struct _NVFRAME{
+	virtual ~_NVFRAME(){};
 	unsigned long flags;
 	unsigned long payload_size[3];
 	unsigned char *payload[3];
