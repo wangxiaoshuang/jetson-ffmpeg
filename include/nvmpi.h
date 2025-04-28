@@ -64,7 +64,7 @@ extern "C" {
 
 	int nvmpi_decoder_put_packet(nvmpictx* ctx, nvPacket* packet);
 
-	nvFrame* nvmpi_decoder_get_frame(nvmpictx *ctx, bool wait);
+	nvFrame* nvmpi_decoder_get_frame(nvmpictx *ctx);
 
 	int nvmpi_decoder_close(nvmpictx *ctx);
 

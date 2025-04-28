@@ -188,13 +188,11 @@ void nvmpictx::updateFrameSizeParams()
 {
 	//it's safe when called from respondToResolutionEvent() after initFramePool()
 	NVMPI_frameBuf* fb = framePool->peekEmptyBuf();
-	NvBufSurfacePlaneParams parm;
-	NvBufSurfaceParams dst_dma_surface_params;
-	dst_dma_surface_params = fb->mDstDMASurface->surfaceList[0];
-	parm = dst_dma_surface_params.planeParams;
+	const NvBufSurfaceParams &dst_dma_surface_params = fb->mDstDMASurface->surfaceList[0];
+	const NvBufSurfacePlaneParams &parm = dst_dma_surface_params.planeParams;
 
 	num_planes = parm.num_planes;
-	for(unsigned int i=0; i<num_planes; i++)
+	for(unsigned int i = 0; i < num_planes; i++)
 	{
 		frame_linesize[i] = parm.pitch[i];
 		frame_height[i] = parm.height[i];
@@ -316,7 +314,7 @@ void dec_capture_loop_fcn(nvmpictx* ctx)
     do
     {
         /* Refer ioctl VIDIOC_DQEVENT */
-        ret = dec->dqEvent(v4l2Event, 500);
+        ret = dec->dqEvent(v4l2Event, 100);
         if (ret < 0)
         {
             if (errno == EAGAIN)
@@ -369,7 +367,7 @@ void dec_capture_loop_fcn(nvmpictx* ctx)
 						ERROR_MSG("Got EoS at capture plane");
 						ctx->eos=true;
 					}
-					usleep(1000);
+					usleep(10);
 				}
 				else
 				{
@@ -401,8 +399,12 @@ void dec_capture_loop_fcn(nvmpictx* ctx)
 				ret = NvBufSurf::NvTransform(&transform_params, dec_buffer->planes[0].fd, *fb->mDMAfd);
 				
 				TEST_ERROR(ret==-1, "Transform failed",ret);
-				fb->mTimestamp = (v4l2_buf.timestamp.tv_usec % 1000000) + (v4l2_buf.timestamp.tv_sec * 1000000UL);
-				
+				fb->mTimestamp = (v4l2_buf.timestamp.tv_usec % 1000) + (v4l2_buf.timestamp.tv_sec * 1000);
+				fb->mWidth = ctx->output_width;
+				fb->mHeight = ctx->output_height;
+				fb->mLineSize[0] = ctx->frame_linesize[0];
+				fb->mLineSize[1] = ctx->frame_linesize[1];
+				fb->mLineSize[2] = ctx->frame_linesize[2];
 				ctx->framePool->qFilledBuf(fb);
 			}
 			else
@@ -416,7 +418,7 @@ void dec_capture_loop_fcn(nvmpictx* ctx)
 					{
 						ret = NvBufSurf::NvTransform(&transform_params, dec_buffer->planes[0].fd, *fb->mDMAfd);
 						TEST_ERROR(ret==-1, "Transform failed",ret);
-						fb->mTimestamp = (v4l2_buf.timestamp.tv_usec % 1000000) + (v4l2_buf.timestamp.tv_sec * 1000000UL);
+						fb->mTimestamp = (v4l2_buf.timestamp.tv_usec % 1000) + (v4l2_buf.timestamp.tv_sec * 1000);
 						
 						ctx->framePool->qFilledBuf(fb);
 						break;
@@ -446,9 +448,9 @@ nvmpictx* nvmpi_create_decoder(nvDecParam* param)
 	ret=ctx->dec->subscribeEvent(V4L2_EVENT_RESOLUTION_CHANGE, 0, 0);
 	TEST_ERROR(ret < 0, "Could not subscribe to V4L2_EVENT_RESOLUTION_CHANGE", ret);
 	
-	ctx->frame_pool_size = param.frame_pool_size;
+	ctx->frame_pool_size = param->frame_pool_size;
 	
-	switch(param.codingType)
+	switch(param->codingType)
 	{
 		case NV_VIDEO_CodingH264:
 			ctx->decoder_pixfmt=V4L2_PIX_FMT_H264;
@@ -487,11 +489,11 @@ nvmpictx* nvmpi_create_decoder(nvDecParam* param)
 	ret = ctx->dec->output_plane.setupPlane(V4L2_MEMORY_USERPTR, 10, false, true);
 	TEST_ERROR(ret < 0, "Error while setting up output plane", ret);
 
-	ctx->dec->output_plane.setStreamStatus(true);
+	ret = ctx->dec->output_plane.setStreamStatus(true);
 	TEST_ERROR(ret < 0, "Error in output plane stream on", ret);
 
-	ctx->out_pixfmt=param.pixFormat;
-	ctx->resized = param.resized;
+	ctx->out_pixfmt=param->pixFormat;
+	ctx->resized = param->resized;
 	ctx->framePool = std::make_shared<NVMPI_bufPool<NVMPI_frameBuf*> >();
 	ctx->eos=false;
 	ctx->index=0;
@@ -529,13 +531,13 @@ int nvmpi_decoder_put_packet(nvmpictx *ctx, nvPacket* packet)
 		}
 	}
 
-	memcpy(nvBuffer->planes[0].data,packet->payload, packet->payload_size);
+	memcpy(nvBuffer->planes[0].data, packet->payload, packet->payload_size);
 	nvBuffer->planes[0].bytesused = packet->payload_size;
 	v4l2_buf.m.planes[0].bytesused = nvBuffer->planes[0].bytesused;
 
 	v4l2_buf.flags |= V4L2_BUF_FLAG_TIMESTAMP_COPY;
-	v4l2_buf.timestamp.tv_sec = packet->pts / 1000000;
-	v4l2_buf.timestamp.tv_usec = packet->pts % 1000000;
+	v4l2_buf.timestamp.tv_sec = packet->pts / 1000;
+	v4l2_buf.timestamp.tv_usec = packet->pts % 1000;
 
 	ret = ctx->dec->output_plane.qBuffer(v4l2_buf, NULL);
 	if (ret < 0)
@@ -603,7 +605,7 @@ int copyNvBufToFrame(nvmpictx* ctx, NVMPI_frameBuf *nvmpiBuf, nvFrame* frame)
 }
 #endif
 
-nvFrame* nvmpi_decoder_get_frame(nvmpictx *ctx, bool wait)
+nvFrame* nvmpi_decoder_get_frame(nvmpictx *ctx)
 {
 	int ret;
 	NVMPI_frameBuf* fb = ctx->framePool->dqFilledBuf();
@@ -611,8 +613,13 @@ nvFrame* nvmpi_decoder_get_frame(nvmpictx *ctx, bool wait)
 		return NULL;
 	
 	auto frame = new NVFrame(ctx->framePool, fb);
-	//ret = copyNvBufToFrame(ctx, fb, frame);
-	frame->timestamp=fb->mTimestamp;	
+	frame->width = fb->mWidth;
+	frame->height = fb->mHeight;
+	frame->linesize[0] = fb->mLineSize[0];
+	frame->linesize[1] = fb->mLineSize[1];
+	frame->linesize[2] = fb->mLineSize[2];
+	frame->timestamp = fb->mTimestamp;
+	frame->type = NV_PIX_NV12;
 	
 	return frame;
 }
