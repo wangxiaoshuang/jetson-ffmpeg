@@ -615,6 +615,9 @@ nvFrame* nvmpi_decoder_get_frame(nvmpictx *ctx)
 	auto frame = new NVFrame(ctx->framePool, fb);
 	frame->width = fb->mWidth;
 	frame->height = fb->mHeight;
+	frame->payload[0] = (unsigned char*)fb->mCUFrame->frame.pPitch[0];
+	frame->payload[1] = (unsigned char*)fb->mCUFrame->frame.pPitch[1];
+	frame->payload[2] = (unsigned char*)fb->mCUFrame->frame.pPitch[2];
 	frame->linesize[0] = fb->mLineSize[0];
 	frame->linesize[1] = fb->mLineSize[1];
 	frame->linesize[2] = fb->mLineSize[2];
