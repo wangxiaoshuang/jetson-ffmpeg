@@ -3,6 +3,7 @@
 #include "nvUtils2NvBuf.h"
 #include "NVMPI_bufPool.hpp"
 #include "NVMPI_frameBuf.hpp"
+#include "NvJpegEncoder.h"
 #include <vector>
 #include <iostream>
 #include <thread>
@@ -85,8 +86,39 @@ public:
 		mFramePool->qEmptyBuf(mFrameBuf);
 	}
 	
+	virtual std::vector<unsigned char> toJpeg(int quality) override
+	{
+		int dmafd = *mFrameBuf->mDMAfd;
+		if (dmafd == -1)
+			return {};
+
+		if (mJpegEncoder == nullptr)
+			mJpegEncoder = std::shared_ptr<NvJPEGEncoder>(NvJPEGEncoder::createJPEGEncoder("jpenenc"));
+		
+		if (mJpegEncoder == nullptr)
+		{
+			std::cerr << "NvJPEGEncoder::createJPEGEncoder() fail!" << std::endl;
+			return {};
+		}
+
+		size_t bufSize = 1024 * 1024;
+		std::vector<unsigned char> buf;
+		buf.resize(bufSize);
+		unsigned char* data = buf.data();
+		int ret = mJpegEncoder->encodeFromFd(dmafd, JCS_YCbCr, &data, bufSize, quality);
+		if (ret < 0)
+		{
+			std::cerr << "Error encoding JPEG" << std::endl;
+			return {};
+		}
+		buf.resize(bufSize);
+		return buf;
+	}
+
 	NVMPI_frameBuf* mFrameBuf{nullptr};
 	std::shared_ptr<NVMPI_bufPool<NVMPI_frameBuf*> > mFramePool;
+
+	std::shared_ptr<NvJPEGEncoder> mJpegEncoder;
 };
 
 

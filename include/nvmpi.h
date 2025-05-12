@@ -3,9 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <memory>
-
-//Maximum size of the encoded buffers on the capture plane in bytes 
-#define NVMPI_ENC_CHUNK_SIZE 2*1024*1024
+#include <vector>
 
 typedef struct nvmpictx nvmpictx;
 
@@ -45,8 +43,11 @@ typedef struct _NVPACKET{
 	void* privData;
 } nvPacket;
 
-typedef struct _NVFRAME{
-	virtual ~_NVFRAME(){};
+struct nvFrame
+{
+	nvFrame(){};
+	virtual ~nvFrame(){};
+	virtual std::vector<unsigned char> toJpeg(int quality = 85) = 0;
 	unsigned long flags;
 	unsigned long payload_size[3];
 	unsigned char *payload[3];
@@ -55,7 +56,7 @@ typedef struct _NVFRAME{
 	unsigned int width;
 	unsigned int height;
 	time_t timestamp;
-} nvFrame;
+};
 
 #ifdef __cplusplus
 extern "C" {
